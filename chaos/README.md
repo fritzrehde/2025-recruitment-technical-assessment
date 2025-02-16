@@ -1,3 +1,5 @@
+***Note that I was in Chaos in 2024, so I've already done this technical assessment before. I've copied my submission from last time, with a few adjustments to the Rust code.***
+
 > This question is relevant for **chaos backend**
 
 # DevSoc Subcommittee Recruitment: Chaos Backend
@@ -33,16 +35,28 @@ Make sure to include foreign keys for the relationships that will `CASCADE` upon
 
 **Answer box:**
 ```sql
+CREATE TYPE question_type AS ENUM ('ShortAnswer', 'MultiSelect', 'MultiChoice');
+
+-- I could have also required table fields such as forms.title, forms.description, questions.title, questions.question_type to be NOT NULL, but this wasn't required/defined in the problem statement.
+
 CREATE TABLE forms (
-    --     Add columns here
+    id INTEGER PRIMARY KEY,
+    title TEXT
+    description TEXT
 );
 
 CREATE TABLE questions (
-    --     Add columns here
+    id INTEGER PRIMARY KEY,
+    form_id INTEGER NOT NULL REFERENCES forms(id) ON DELETE CASCADE,
+    title TEXT,
+    question_type question_type,
 );
 
 CREATE TABLE question_options (
-    --     Add columns here
+    id INTEGER PRIMARY KEY,
+    question_id INTEGER NOT NULL REFERENCES questions(id) ON DELETE CASCADE,
+    -- It would make more sense to not have a `question_options` item at all rather than having one with `NULL`, so require `NOT NULL`.
+    option TEXT NOT NULL,
 );
 ```
 
@@ -59,4 +73,23 @@ Using the above schema, write a (Postgres) SQL `SELECT` query to return all ques
 **Answer box:**
 ```sql
 -- Write query here
+-- TODO: get all the questions, along with each question's question_options, for a specific form_id.
+SELECT
+    q.id,
+    q.form_id,
+    q.title,
+    q.question_type,
+    ARRAY_AGG(o.option) AS options
+FROM
+    questions q
+-- Use left join so we also return those questions that have no options.
+LEFT JOIN question_options o ON q.id = o.question_id
+WHERE
+    q.form_id = 26583
+-- Required for aggregating question_options.
+GROUP BY
+    q.id, q.form_id, q.title, q.question_type
+-- For ordering by questions.id.
+ORDER BY
+    q.id;
 ```
