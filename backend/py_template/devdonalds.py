@@ -102,11 +102,18 @@ class Cookbook:
                     new_ingredients := self.all_ingredient_quantities(
                         child_recipe.name
                     )
-                ) is not None:
-                    # Merge new ingredients into total/all.
-                    all_ingredients += new_ingredients
-                else:
+                ) is None:
                     return None
+
+                # Merge new ingredients into total/all.
+                for (
+                    ingredient_name,
+                    ingredient_quantity,
+                ) in new_ingredients.items():
+                    # Take into account that we need a certain quantity of this item.
+                    all_ingredients[ingredient_name] += (
+                        ingredient_quantity * item.quantity
+                    )
             else:
                 # Item is neither ingredient nor recipe.
                 return None
@@ -306,6 +313,97 @@ def test_cookbook_summary():
         },
     )
     assert cookbook.summary("Burger") == None
+
+    # Provided example
+    cookbook = Cookbook(
+        recipes={
+            "Skibidi Spaghetti": Recipe(
+                type="recipe",
+                name="Skibidi Spaghetti",
+                requiredItems=[
+                    Item(name="Meatball", quantity=3),
+                    Item(name="Pasta", quantity=1),
+                    Item(name="Tomato", quantity=2),
+                ],
+            ),
+            "Meatball": Recipe(
+                type="recipe",
+                name="Meatball",
+                requiredItems=[
+                    Item(name="Beef", quantity=2),
+                    Item(name="Egg", quantity=1),
+                ],
+            ),
+            "Pasta": Recipe(
+                type="recipe",
+                name="Pasta",
+                requiredItems=[
+                    Item(name="Flour", quantity=3),
+                    Item(name="Egg", quantity=1),
+                ],
+            ),
+        },
+        ingredients={
+            "Beef": Ingredient(type="ingredient", name="Beef", cookTime=5),
+            "Egg": Ingredient(type="ingredient", name="Egg", cookTime=3),
+            "Flour": Ingredient(type="ingredient", name="Flour", cookTime=0),
+            "Tomato": Ingredient(type="ingredient", name="Tomato", cookTime=2),
+        },
+    )
+    assert cookbook.summary("Skibidi Spaghetti") == RecipeSummary(
+        name="Skibidi Spaghetti",
+        cookTime=46,
+        ingredients=[
+            Item(name="Beef", quantity=6),
+            Item(name="Egg", quantity=4),
+            Item(name="Flour", quantity=3),
+            Item(name="Tomato", quantity=2),
+        ],
+    )
+
+    # Test recursion with > 2 levels.
+    cookbook = Cookbook(
+        recipes={
+            "A": Recipe(
+                type="recipe",
+                name="A",
+                requiredItems=[
+                    Item(name="B", quantity=3),
+                ],
+            ),
+            "B": Recipe(
+                type="recipe",
+                name="B",
+                requiredItems=[
+                    Item(name="C", quantity=4),
+                ],
+            ),
+            "C": Recipe(
+                type="recipe",
+                name="C",
+                requiredItems=[
+                    Item(name="D", quantity=7),
+                ],
+            ),
+            "D": Recipe(
+                type="recipe",
+                name="D",
+                requiredItems=[
+                    Item(name="E", quantity=11),
+                ],
+            ),
+        },
+        ingredients={
+            "E": Ingredient(type="ingredient", name="E", cookTime=5),
+        },
+    )
+    assert cookbook.summary("A") == RecipeSummary(
+        name="A",
+        cookTime=4620,
+        ingredients=[
+            Item(name="E", quantity=924),
+        ],
+    )
 
 
 # =============================================================================
